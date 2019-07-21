@@ -1,0 +1,42 @@
+#include"mypcap.h"
+
+int main(int argc, char* argv[]) {
+  if (argc != 2) {
+    usage();
+    return -1;
+  }
+
+  char* dev = argv[1];
+
+  char errbuf[PCAP_ERRBUF_SIZE];
+  pcap_t* handle = pcap_open_live(dev, BUFSIZ, 1, 1000, errbuf);
+  if (handle == NULL) {
+    fprintf(stderr, "couldn't open device %s: %s\n", dev, errbuf);
+    return -1;
+  }
+
+  while (true) {
+    struct pcap_pkthdr* header;
+    const u_char* packet;
+    int res = pcap_next_ex(handle, &header, &packet);
+    if (res == 0) continue;
+    if (res == -1 || res == -2) break;
+    //typing by me
+    printMac(packet, SRC);
+    printMac(packet, DST);
+
+    if(chkEtherType(packet)){
+        printIP(packet, SRC);
+        printIP(packet, DST);
+        if(chkProtocol(packet)){
+            printPort(packet, SRC);
+            printPort(packet, DST);
+            printTcpSegment(packet, header);
+        }
+        else continue;
+    }
+    else continue;
+  }
+  pcap_close(handle);
+  return 0;
+}
